@@ -1,0 +1,18 @@
+Programs that make noise!
+
+
+# snappy-drums.c
+
+This is a drum machine. It's kind of like 808s but more crispy.
+This version works with JACK audio (Linux).
+
+
+# snokoder.c
+
+A vocoder I made a long time ago. Lots of settings, and also useful for voice recording.
+This version works with JACK audio (Linux).
+
+
+# theremin.html
+
+Good for making alien sounds. I used this to troll people during the "storm area 51" era 😂

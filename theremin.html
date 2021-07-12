@@ -1,0 +1,204 @@
+<!--
+ Copyright 2019, Elie Goldman Smith
+
+ This program is FREE SOFTWARE: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+<html>
+<head>
+<title>Elie's Theremin</title>
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<style>
+button {
+ font-size: inherit;
+}
+input {
+ font-size: inherit;
+}
+</style>
+<script>
+function $(id) { return document.getElementById(id); }
+
+signal = 0;
+dSignal = 0;
+count = 0;
+sineWave = true;
+sineAmp = 0;
+sinePos = 0;
+sineStep = 0;
+newSineAmp = 0;
+newSineStep = 0;
+amplitude = 0;
+halfWave = 100;
+mouseDown = false;
+inittedAudio = false;
+ 
+function initWindow() {
+ main = $("main");
+ canvas = $("myCanvas");
+ ctx = canvas.getContext("2d");
+ canvasSize = main.clientWidth;
+ maxHeight = window.innerHeight - $("theTop").clientHeight - $("theBottom").clientHeight;
+ if (maxHeight < 16) maxHeight = 16;
+ if (canvasSize > maxHeight) canvasSize = maxHeight;
+ ctx.canvas.width  = canvasSize;
+ ctx.canvas.height = canvasSize;
+ main.onmousedown  = myDown;
+ main.ontouchstart = myDown;
+ window.onmousemove = myMove;
+ window.ontouchmove = myMove;
+ window.onmouseup  = myUp;
+ window.ontouchend = myUp;
+}
+
+function initAudio() {
+ audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+ var scriptNode = audioCtx.createScriptProcessor(4096, 0, 1);
+ scriptNode.onaudioprocess = sound;
+ scriptNode.connect(audioCtx.destination);
+ sampleRate = audioCtx.sampleRate || 44100;
+ inittedAudio = true;
+}
+
+function update(pointerX, pointerY)
+{
+ if (!inittedAudio) initAudio();
+ if (pointerX < 0) pointerX = 0; else if (pointerX >= canvasSize) pointerX = canvasSize-1;
+ if (pointerY < 0) pointerY = 0; else if (pointerY >= canvasSize) pointerY = canvasSize-1;
+ var x = pointerX / (canvasSize-1);
+ var y = pointerY / (canvasSize-1);
+ 
+ halfWave = Math.exp(6.5*(1-x));
+ newSineStep = Math.PI / halfWave;
+ $("frequency").value = Math.round(sampleRate * 0.5 / halfWave);
+ halfWave = Math.round(halfWave);
+ if (halfWave < 1) halfWave = 1;
+
+ if (mouseDown) {
+  newSineAmp = (1-y)*(1-y);
+  if (y > 0.5)         amplitude = newSineAmp*4;
+  else if (y > 0.0005) amplitude = 0.5 / y;
+  else                 amplitude = 1000;
+  if (x < 0.02) newSineAmp *= x * 50;
+  ctx.strokeStyle = "#000000";
+ }
+ else ctx.strokeStyle = "#CCCCCC";
+
+ ctx.beginPath();
+ ctx.moveTo(pointerX, 0);
+ ctx.lineTo(pointerX, canvasSize-1);
+ ctx.moveTo(0, pointerY);
+ ctx.lineTo(canvasSize-1, pointerY);
+ ctx.moveTo(pointerX - 8, pointerY - 8);
+ ctx.lineTo(pointerX + 8, pointerY + 8);
+ ctx.moveTo(pointerX + 8, pointerY - 8);
+ ctx.lineTo(pointerX - 8, pointerY + 8);
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+ ctx.stroke();
+}
+
+function sound(audioProcessingEvent)
+{
+ var out = audioProcessingEvent.outputBuffer.getChannelData(0);
+ var nframes = audioProcessingEvent.outputBuffer.length;
+ var da = (newSineAmp - sineAmp) / nframes;
+ var dss = (newSineStep - sineStep) / nframes;
+
+ if (sineWave) {
+  for (var i=0; i<nframes; i++) {
+   out[i] = Math.sin(sinePos) * sineAmp;
+   sineAmp += da;
+   sinePos += sineStep;
+   sineStep += dss;
+   if (sinePos > Math.PI) sinePos -= Math.PI*2;
+  }
+  if (!mouseDown) {
+   newSineAmp *= 0.6;
+   if (newSineAmp < 0.001) newSineAmp = 0;
+  }
+ }
+ else {
+  for (var i=0; i<nframes; i++) {
+   signal += dSignal;
+   if      (signal >  1) signal =  1;
+   else if (signal < -1) signal = -1;
+   out[i] = signal;
+   if (--count <= 0) {
+    count = halfWave;
+    if (!mouseDown) {
+     var decay = 0.0001*halfWave;
+     if (decay > 0.01) decay = 0.01;
+     if (amplitude > 1) amplitude = 1 / (1 / amplitude + decay);
+     else               amplitude *= 1 - decay;
+     if (amplitude < 0.001) amplitude = 0;
+    }
+	if (signal < 0) dSignal =  (amplitude - signal) / halfWave;
+    else            dSignal = (-amplitude - signal) / halfWave;
+    if (dSignal > -0.000001 && dSignal < 0.000001) signal = dSignal = amplitude = 0;
+   }
+  }
+ }
+}
+
+function switchToSine() {
+ sineWave = true;
+ newSineAmp = 0;
+}
+
+function switchToTriangle() {
+ sineWave = false;
+ amplitude = 0;
+}
+
+function myDown(e) {
+ mouseDown = true;
+ var rect = canvas.getBoundingClientRect();
+ if (e.touches) update(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+ else update(e.clientX - rect.left, e.clientY - rect.top);
+}
+
+function myMove(e) {
+ if (mouseDown) {
+  var rect = canvas.getBoundingClientRect();
+  if (e.touches) update(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+  else update(e.clientX - rect.left, e.clientY - rect.top);
+ }
+}
+
+function myUp(e) {
+ if (mouseDown) {
+  mouseDown = false;
+  var rect = canvas.getBoundingClientRect();
+  if (e.touches) update(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
+  else update(e.clientX - rect.left, e.clientY - rect.top);
+ }
+}
+</script>
+</head>
+<body id="body" onload="initWindow()" onresize="initWindow()" style="text-align:center; font-family:sans-serif; overflow:hidden" onselectstart="return false;">
+ <div id="main" style="width:100%">
+  <div id="theTop" style="font-size:6vw"><br>Scribble to make noise &#128540;</div>
+  <canvas id="myCanvas" style="border-top:1px solid; border-bottom:1px solid"></canvas>
+ </div>
+ <div id="theBottom">
+  <div style="font-size:2vw">
+   <input id="frequency" type="text" style="width:5em;text-align:right" readonly></input> Hz - 
+   <button onclick="switchToSine()">Sine</button>
+   <button onclick="switchToTriangle()">Triangle/Square</button>
+   <!-- TODO: option to quantize frequency to a pentatonic scale; maybe use just-intonation -->
+  </div> 
+  <br>
+  <div style="font-size:1.5vw">Copyright (c) Elie Goldman Smith, 2019</div>
+ </div>
+</body>
+</html>

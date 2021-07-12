@@ -1,0 +1,76 @@
+Elie's Snappy Drum Machine
+Copyright (C) Elie Goldman Smith 2019
+Version 1.1
+-----
+
+Snappy is a drum synth with an 808-like sound but more crisp and ready to cut through any mix.
+This version uses JACK audio and ALSA midi.
+
+
+LIVE MODE
+Simple way to get started:
+
+ Run Snappy in a terminal, and play the drums live by typing letters & numbers. Most are Tone Drums (kicks, toms, and congas). You get the higher notes using Shift or Caps Lock. Special keys: '1' is a clap. '~' is a high-hat. '-' is a cowbell.
+
+
+MIDI INPUT
+You can make a lot more sounds this way.
+
+ Arrangement:
+ Starting from highest MIDI notes to lowest:
+
+  Short hat  \
+  Long hat    \  repeating
+  Long clap   /  pattern
+  Short clap /
+   ...
+  Tone drums - congas
+   ...
+  Tone drums - toms
+   ...
+  Tone drums - kicks
+   ...
+  Deep kick with no tuning
+
+To make an 808-style snare: Layer a tom with a short clap (half velocity or less)
+
+To make a wavy "ghost drum" effect, play two tone-drums at exactly the same time.
+
+Tone drums are monophonic. If you want to add some congas that don't cut your kicks & toms, then send the conga notes to Midi Channel 16. This special channel lets you add an extra "auxillary tone". Channel 16 also has cowbells and cymbals (highest notes).
+
+
+Midi Controllers
+- Pitch Wheel: Range: -1 octave to +1 octave. If the tone gets too low, the sound will mute for that moment. This can be used intentionally for strobe effects.
+- Sound Variation: This controls the "thickness" of tone drums. Higher is more like a 909, lower is more like an 808.
+- Sound Release: Tone drums release time.
+- Sound Control 6: Clap release time.
+- Sound Control 7: High-hats release time.
+- All Controllers Off: Reset to default settings.
+- All Notes Off / All Sounds Off: Quick silence.
+
+Channel 16
+- Sound Timbre: Auxillary tones decay time.
+- Sound Release: Auxillary tones release time.
+- Sound Control 6: Cowbell release time.
+- Sound Control 7: Cymbals release time.
+
+
+MORE THINGS TO KNOW
+
+Sample rate will affect the transition point between congas and claps/hats. A lower sample rate = "running out of congas" at a lower point. But above that point, the claps & hats will ALWAYS be arranged the same way, no matter the sample rate.
+
+Use the same sample rate that you plan to use for your final mix. There is no need for supersampling/antialiasing. All drum waveforms are aligned with integer numbers of samples. That's what makes it sound crisp and snappy.
+
+Other programs that work well with Snappy:
+- ZynAddSubFX (a synth made by Nasca Paul)
+- Snokoder (a vocoder made by me)
+- Seq24 (a midi sequencer)
+- Rosegarden (another midi sequencer)
+- QSynth / FluidSynth
+- JACK Rack
+
+If you get bored of the sound of plain snappy drums, try hooking it up to a plate reverb, or a peaking filter (such as Steve Harris's LADSPA called Single Band Parametric).
+
+If someone wants to port Snappy to LADSPA or VSTi, that would be great :D
+
+
